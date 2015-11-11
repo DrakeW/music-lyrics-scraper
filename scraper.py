@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import urllib2
 import re
+import json
 
 # STEP1: grab song names + artists from billboard top 100 (1965-2015). approx. 5000 songs
 song_list = []
@@ -21,7 +22,7 @@ for i in year_range:
     for j in xrange(len(song_tds)):
         song_list[i].append({"name": " ".join(song_tds[j].text.split()), "artist": artist_tds[j].text, "lyric": None})
 
-print(song_list)
+# print(song_list)
 
 # DEBUG
 # song_list = {1965: [{'name': 'I Feel Fine', 'artist': 'The Beatles ', 'lyric': None}]}
@@ -49,15 +50,20 @@ def grab_lyric_link(url, artist_name):
     response = urllib2.urlopen(url)
     html = response.read()
     soup = BeautifulSoup(html, 'html.parser')
-    songs_container = soup.find('div', {'class': 'colortable'}).find('tbody')
-    songs_info_list = songs_container.find_all('tr')
-    for song_info in songs_info_list:
-        info = song_info.find_all('td')
-        artist = " ".join(info[0].text.split()[1:])
-        # TODO: if no match append results of next page to songs_info_list
-        if artist in artist_name:
-            song_url = info[1].find('a')['href']
-            return site_base_url + song_url
+    songs_container = soup.find('div', {'class': 'colortable'})
+    # if can't find song
+    if songs_container:
+        songs_container_inside = songs_container.find('tbody')
+        # double guard for null value failure
+        if songs_container_inside:
+            songs_info_list = songs_container_inside.find_all('tr')
+            for song_info in songs_info_list:
+                info = song_info.find_all('td')
+                artist = " ".join(info[0].text.split()[1:])
+                # TODO: if no match append results of next page to songs_info_list
+                if artist in artist_name:
+                    song_url = info[1].find('a')['href']
+                    return site_base_url + song_url
     return None
 
 for k in search_url_hash:
@@ -78,7 +84,13 @@ def grab_content(url):
     return lyric_container.text
 
 for year in xrange(1965, 2016):
-    for song in song_list[year]:
-        song['lyric'] = grab_content(lyric_url_hash[song['name']])
+    with open('song_{0}.json'.format(year), 'w') as fp:
+        for song in song_list[year]:
+            song['lyric'] = grab_content(lyric_url_hash[song['name']])
+        json.dump(song_list[year], fp)
 
-print song_list
+# print song_list
+
+# save data into json file
+# with open('song.json', 'w') as fp:
+#     json.dump(song_list, fp)
