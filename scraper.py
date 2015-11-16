@@ -2,13 +2,20 @@ from bs4 import BeautifulSoup
 import urllib2
 import re
 import json
+import sys
+print sys.argv
+
+START_YEAR = int(sys.argv[1])
+END_YEAR = START_YEAR + 1
+
+print "{0}-{1}".format(START_YEAR, END_YEAR)
 
 # STEP1: grab song names + artists from billboard top 100 (1965-2015). approx. 5000 songs
 song_list = []
 
 billboard_base_url_prefix = "http://www.billboard.com/archive/charts/"
 billboard_base_url_postfix = "/hot-100"
-year_range = xrange(1965, 2016)
+year_range = xrange(START_YEAR, END_YEAR)
 
 song_list = {}
 for i in year_range:
@@ -20,7 +27,9 @@ for i in year_range:
     song_tds = soup.find_all('td', {'class': 'views-field-field-chart-item-song'} )
     artist_tds = soup.find_all('td', {'class': 'views-field-field-chart-item-artist'} )
     for j in xrange(len(song_tds)):
-        song_list[i].append({"name": " ".join(song_tds[j].text.split()), "artist": artist_tds[j].text, "lyric": None})
+        song_list[i].append({"name": " ".join(song_tds[j].text.split()), 
+                             "artist": artist_tds[j].text, 
+                             "lyric": None})
 
 # print(song_list)
 
@@ -30,7 +39,7 @@ for i in year_range:
 # STEP2: grab lyric url from song names
 
 # use metrolyrics as our lyric source
-site_base_url = "http://www.lyricsfreak.com/"
+site_base_url = "http://www.lyricsfreak.com"
 lyric_base_url = "http://www.lyricsfreak.com/search.php?a=search&type=song&q="
 
 search_url_hash = {}
@@ -71,6 +80,22 @@ for k in search_url_hash:
 
 # print lyric_url_hash
 
+from HTMLParser import HTMLParser
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.fed = []
+    def handle_data(self, d):
+        self.fed.append(d)
+    def get_data(self):
+        return ''.join(self.fed)
+
+def strip_tags(html):
+    s = MLStripper()
+    s.feed(html)
+    return s.get_data()
+
 # STEP 3: grab content
 def grab_content(url):
     if not url:
@@ -81,16 +106,16 @@ def grab_content(url):
     lyric_container = soup.find('div', {'id': 'content_h'})
     if not lyric_container:
         return
-    return lyric_container.text
+    # replace <br> with " "
+    content_str = re.sub('<br>', ' ', str(lyric_container))
+    # replace none word char with space and strip html tags
+    content_str = " ".join(re.sub('\W', ' ', strip_tags(content_str)).split())
+    return content_str
 
-for year in xrange(1965, 2016):
+for year in xrange(START_YEAR, END_YEAR):
     with open('song_{0}.json'.format(year), 'w') as fp:
         for song in song_list[year]:
             song['lyric'] = grab_content(lyric_url_hash[song['name']])
         json.dump(song_list[year], fp)
 
 # print song_list
-
-# save data into json file
-# with open('song.json', 'w') as fp:
-#     json.dump(song_list, fp)
