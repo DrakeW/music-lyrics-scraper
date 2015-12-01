@@ -19,17 +19,37 @@ year_range = xrange(START_YEAR, END_YEAR)
 
 song_list = {}
 for i in year_range:
-    song_list[i] = []
+    song_list[i]       = []
     billboard_full_url = billboard_base_url_prefix + str(i) + billboard_base_url_postfix
-    response = urllib2.urlopen(billboard_full_url)
-    html = response.read()
-    soup = BeautifulSoup(html, 'html.parser')
-    song_tds = soup.find_all('td', {'class': 'views-field-field-chart-item-song'} )
-    artist_tds = soup.find_all('td', {'class': 'views-field-field-chart-item-artist'} )
-    for j in xrange(len(song_tds)):
-        song_list[i].append({"name": " ".join(song_tds[j].text.split()), 
-                             "artist": artist_tds[j].text, 
-                             "lyric": None})
+    response           = urllib2.urlopen(billboard_full_url)
+    html               = response.read()
+    soup               = BeautifulSoup(html, 'html.parser')
+    # song_tds = soup.find_all('td', {'class': 'views-field-field-chart-item-song'} )
+    # artist_tds = soup.find_all('td', {'class': 'views-field-field-chart-item-artist'} )
+    # for j in xrange(len(song_tds)):
+    #     song_list[i].append({"name": " ".join(song_tds[j].text.split()), 
+    #                          "artist": artist_tds[j].text, 
+    #                          "lyric": None})
+    odd_dates    = soup.find_all('tr', {'class': 'odd'})
+    even_dates   = soup.find_all('tr', {'class': 'even'})
+    lst          = list(sum(zip(odd_dates, even_dates), ()))
+    if len(odd_dates) > len(even_dates):
+        lst.append(odd_dates[len(odd_dates)-1])
+    song         = None;
+    artist       = None;
+    song_index   = -1
+    for tr in lst:
+        song_td = tr.find('td', {'class': 'views-field-field-chart-item-song'})
+        artist_td = tr.find('td', {'class': 'views-field-field-chart-item-artist'})
+        if song_td or artist_td:
+            song_index += 1
+            song_list[i].append({"name": " ".join(song_td.text.split()), 
+                                 "artist": artist_td.text, 
+                                 "lyric": None,
+                                 "num_of_weeks": 1})
+        else:
+            song_list[i][song_index]["num_of_weeks"] += 1
+
 
 # print(song_list)
 
