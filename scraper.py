@@ -24,12 +24,6 @@ for i in year_range:
     response           = urllib2.urlopen(billboard_full_url)
     html               = response.read()
     soup               = BeautifulSoup(html, 'html.parser')
-    # song_tds = soup.find_all('td', {'class': 'views-field-field-chart-item-song'} )
-    # artist_tds = soup.find_all('td', {'class': 'views-field-field-chart-item-artist'} )
-    # for j in xrange(len(song_tds)):
-    #     song_list[i].append({"name": " ".join(song_tds[j].text.split()), 
-    #                          "artist": artist_tds[j].text, 
-    #                          "lyric": None})
     odd_dates    = soup.find_all('tr', {'class': 'odd'})
     even_dates   = soup.find_all('tr', {'class': 'even'})
     lst          = list(sum(zip(odd_dates, even_dates), ()))
